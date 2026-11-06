@@ -1,7 +1,31 @@
-- name: Build apk
-  # You may pin to the exact commit or the version.
-  # uses: MirkoMajkicProductDock/BuildAPK@24cc2d17f0c8e391166603bffe50f207b9d75859
-  uses: MirkoMajkicProductDock/BuildAPK@v0.0.1
-  with:
-    # Pass the flavour you want to build artefacts for
-    flavour: # optional, default is release
+name: Build Android APK
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch: # This lets you trigger it manually
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Gradle cache
+        uses: gradle/gradle-build-action@v3
+
+      - name: Build debug APK
+        run: ./gradlew assembleDebug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: My-App-Debug-APK
+          path: app/build/outputs/apk/debug/app-debug.apk
