@@ -1,0 +1,841 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<script src="wordbox-data.js"></script>
+<title>Wordbox</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#14303A">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<style>
+:root{
+  --bg:#EDF1F0; --surface:#FFFFFF; --ink:#14303A; --muted:#5B7078; --line:#CFD9D8;
+  --accent:#2446E8; --accent-ink:#FFFFFF; --mark:#FFD84D; --danger:#B3261E;
+  --serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root{--bg:#0F1D22; --surface:#172A31; --ink:#E6EFEE; --muted:#92A8AE; --line:#2A4049;
+        --accent:#8EA0FF; --accent-ink:#0F1D22; --danger:#FF8A80; color-scheme:dark;}
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.45;min-height:100vh}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.wrap{max-width:980px;margin:0 auto;padding:16px}
+
+/* header */
+header{display:flex;flex-wrap:wrap;align-items:center;gap:12px;padding:8px 0 16px}
+h1{font-family:var(--serif);font-size:28px;margin:0;letter-spacing:-.01em;flex:1 1 auto}
+h1 small{display:block;font-family:var(--sans);font-size:13px;font-weight:400;color:var(--muted);letter-spacing:0}
+.tabs{display:flex;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:3px}
+.tabs button{border:0;background:none;padding:8px 18px;border-radius:999px;cursor:pointer;color:var(--muted);font-weight:600}
+.tabs button[aria-selected="true"]{background:var(--ink);color:var(--bg)}
+
+/* buttons */
+.btn{border:1px solid var(--line);background:var(--surface);padding:9px 16px;border-radius:10px;cursor:pointer;font-weight:600}
+.btn:hover{border-color:var(--ink)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.danger{color:var(--danger)}
+.btn.small{padding:6px 11px;font-size:14px}
+.icon-btn{display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:50%;border:1px solid currentColor;background:transparent;cursor:pointer;flex:none}
+.icon-btn svg{width:18px;height:18px;fill:currentColor}
+.link{background:none;border:0;padding:4px 0;color:var(--muted);cursor:pointer;text-decoration:underline;font-size:14px}
+
+/* library */
+.toolbar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.toolbar input[type=search]{flex:1 1 220px;padding:10px 14px;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}
+.chip{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 14px;cursor:pointer;font-size:14px}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.chip.manage{border-style:dashed;color:var(--muted)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:14px}
+.wcard{background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow:hidden;display:flex;flex-direction:column}
+.wcard .pic{aspect-ratio:4/3;background:var(--bg);display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:13px}
+.wcard .pic img{width:100%;height:100%;object-fit:cover;display:block}
+.wcard .body{padding:12px 14px;flex:1}
+.wcard .w{font-family:var(--serif);font-size:22px;line-height:1.2;word-break:break-word}
+.wcard .m{color:var(--muted);font-size:14px;margin-top:4px;white-space:pre-wrap;word-break:break-word}
+.wcard .cat{display:inline-block;margin-top:8px;font-size:12px;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:1px 9px}
+.wcard .acts{display:flex;align-items:center;gap:6px;padding:8px 10px;border-top:1px solid var(--line)}
+.wcard .acts .grow{flex:1}
+.empty{text-align:center;padding:48px 16px;color:var(--muted)}
+.empty p{margin:0 0 14px}
+
+/* flashcards */
+.fc-controls{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:16px}
+.fc-controls select{padding:9px 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+.fc-controls label.chk{display:flex;gap:6px;align-items:center;font-size:14px;color:var(--muted)}
+.stage{perspective:1200px;display:flex;justify-content:center}
+.card{position:relative;width:min(100%,420px);height:min(60vh,500px);transform-style:preserve-3d;transition:transform .5s;cursor:pointer;border-radius:20px}
+.card.flipped{transform:rotateY(180deg)}
+.card.noanim{transition:none}
+.face{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;border-radius:20px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:22px;overflow:hidden;text-align:center}
+.face.front{background:var(--surface);border:1px solid var(--line)}
+.face.back{background:var(--mark);color:#14303A;transform:rotateY(180deg)}
+.face img{flex:1;min-height:0;width:100%;object-fit:contain;border-radius:12px}
+.face .big{font-family:var(--serif);font-size:clamp(34px,9vw,52px);line-height:1.1;word-break:break-word}
+.face .sub{font-size:16px;opacity:.8;white-space:pre-wrap;max-height:30%;overflow:auto}
+.face .nopic{color:var(--muted);font-size:14px}
+.fc-nav{display:flex;justify-content:center;align-items:center;gap:16px;margin-top:18px}
+.fc-nav .count{min-width:80px;text-align:center;color:var(--muted)}
+.hint{text-align:center;color:var(--muted);font-size:14px;margin-top:10px}
+@media (prefers-reduced-motion:reduce){.card{transition:none}}
+
+/* dialogs */
+dialog{border:1px solid var(--line);border-radius:16px;background:var(--surface);color:var(--ink);padding:0;width:min(94vw,460px);max-height:92vh}
+dialog::backdrop{background:rgba(8,20,24,.55)}
+.dlg{padding:20px;display:flex;flex-direction:column;gap:14px}
+.dlg h2{margin:0;font-family:var(--serif);font-size:22px}
+.dlg label{display:flex;flex-direction:column;gap:5px;font-size:14px;font-weight:600}
+.dlg input[type=text],.dlg select,.dlg textarea{padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg);font-weight:400}
+.dlg textarea{min-height:70px;resize:vertical}
+.dlg .row{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap}
+.drop{border:2px dashed var(--line);border-radius:12px;padding:16px;text-align:center;color:var(--muted);cursor:pointer;position:relative}
+.drop.over{border-color:var(--accent);color:var(--ink)}
+.drop img{max-width:100%;max-height:200px;border-radius:8px;display:block;margin:0 auto 8px}
+.catrow{display:flex;gap:8px;align-items:center}
+.catrow input{flex:1;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg)}
+.catrow span{color:var(--muted);font-size:13px;min-width:24px;text-align:right}
+.cat-list{display:flex;flex-direction:column;gap:8px;max-height:45vh;overflow:auto}
+
+footer{display:flex;gap:18px;flex-wrap:wrap;justify-content:center;padding:28px 0 12px}
+.banner{background:var(--mark);color:#14303A;border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:14px}
+#toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 18px;border-radius:999px;font-size:14px;opacity:0;pointer-events:none;transition:opacity .2s;z-index:10}
+#toast.show{opacity:1}
+html{-webkit-text-size-adjust:100%}
+body{-webkit-tap-highlight-color:transparent;overscroll-behavior-y:contain;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+button,.chip,.card,.drop{touch-action:manipulation;-webkit-user-select:none;user-select:none}
+.fa{direction:rtl;font-family:Tahoma,"Noto Naskh Arabic","Noto Sans Arabic",system-ui,sans-serif}
+.wcard .fa{font-size:18px;margin-top:2px;color:var(--ink)}
+.row2{display:flex;gap:8px}.row2 input{flex:1;min-width:0}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Wordbox<small id="count"></small></h1>
+    <div class="tabs" role="tablist">
+      <button role="tab" id="tab-words" aria-selected="true">Words</button>
+      <button role="tab" id="tab-cards" aria-selected="false">Flashcards</button>
+    </div>
+    <button class="btn primary" id="addBtn">Add word</button>
+  </header>
+
+  <div class="banner" id="memBanner" hidden>Saving isn't available in this window, so words will be lost when you close it. Download this file and open it in your browser to keep your words.</div>
+
+  <!-- Words -->
+  <section id="view-words">
+    <div class="toolbar"><input type="search" id="search" placeholder="Search words and meanings" aria-label="Search words"></div>
+    <div class="chips" id="chips"></div>
+    <div class="grid" id="grid"></div>
+    <div class="empty" id="empty" hidden></div>
+  </section>
+
+  <!-- Flashcards -->
+  <section id="view-cards" hidden>
+    <div class="fc-controls">
+      <select id="fcCat" aria-label="Category to study"></select>
+      <select id="fcMode" aria-label="Card direction">
+        <option value="picture">Picture first, guess the word</option>
+        <option value="word">Word first, guess the picture</option>
+      </select>
+      <button class="btn" id="fcShuffle">Shuffle</button>
+      <label class="chk"><input type="checkbox" id="autoSpeak"> Say the word aloud</label>
+    </div>
+    <div id="fcEmpty" class="empty" hidden><p>Add a few words to start studying.</p></div>
+    <div id="fcArea">
+      <div class="stage">
+        <div class="card" id="card" role="button" tabindex="0" aria-label="Flashcard. Press Enter to flip.">
+          <div class="face front" id="faceFront"></div>
+          <div class="face back" id="faceBack"></div>
+        </div>
+      </div>
+      <div class="fc-nav">
+        <button class="btn" id="fcPrev">Back</button>
+        <span class="count" id="fcCount"></span>
+        <button class="btn primary" id="fcNext">Next</button>
+      </div>
+      <p class="hint">Tap the card to flip it. Arrow keys move between cards, space flips.</p>
+    </div>
+  </section>
+
+  <footer>
+    <button class="link" id="voiceBtn">Voice settings</button>
+    <button class="link" id="exportBtn">Save backup file</button>
+    <button class="link" id="importBtn">Load backup file</button>
+    <button class="link" id="seedBtn">Make app data file</button>
+    <button class="link" id="trAllBtn">Translate missing Persian</button>
+    <button class="link" id="aboutBtn">About</button>
+    <input type="file" id="importFile" hidden>
+  </footer>
+</div>
+
+<!-- Add / edit dialog -->
+<dialog id="editDlg">
+  <div class="dlg">
+    <h2 id="editTitle">Add word</h2>
+    <label>Word
+      <input type="text" id="fWord" autocomplete="off" maxlength="120">
+    </label>
+    <label>Meaning or notes (optional)
+      <textarea id="fMeaning" maxlength="600"></textarea>
+    </label>
+    <label>Persian translation
+      <span class="row2"><input type="text" id="fFa" class="fa" dir="rtl" lang="fa" autocomplete="off" maxlength="200"><button class="btn small" id="fTr" type="button">Translate</button></span>
+    </label>
+    <label>Category
+      <select id="fCat"></select>
+    </label>
+    <label id="newCatWrap" hidden>New category name
+      <input type="text" id="fNewCat" autocomplete="off" maxlength="60">
+    </label>
+    <div>
+      <div class="drop" id="drop" tabindex="0" role="button" aria-label="Choose a picture">
+        <div id="dropInner"></div>
+      </div>
+      <input type="file" id="fFile" accept="image/*" hidden>
+      <input type="file" id="fCam" accept="image/*" capture="environment" hidden>
+      <button class="link" id="camBtn" type="button">Take a photo</button> <button class="link" id="removePic" hidden>Remove picture</button>
+    </div>
+    <div class="row">
+      <button class="btn" id="editCancel">Cancel</button>
+      <button class="btn" id="editAnother">Save and add another</button>
+      <button class="btn primary" id="editSave">Save</button>
+    </div>
+  </div>
+</dialog>
+
+<!-- Categories dialog -->
+<dialog id="catDlg">
+  <div class="dlg">
+    <h2>Categories</h2>
+    <div class="catrow">
+      <input type="text" id="newCatInput" placeholder="New category name" maxlength="60" aria-label="New category name">
+      <button class="btn primary small" id="newCatAdd">Add</button>
+    </div>
+    <div class="cat-list" id="catList"></div>
+    <div class="row"><button class="btn" id="catClose">Done</button></div>
+  </div>
+</dialog>
+
+<!-- Voice dialog -->
+<dialog id="voiceDlg">
+  <div class="dlg">
+    <h2>Voice settings</h2>
+    <p id="ttsNote" style="margin:0;color:var(--muted);font-size:14px" hidden>This app window has no built-in voices, so Wordbox speaks using online speech instead. That needs an internet connection.</p>
+    <label>Voice
+      <select id="voiceSel"></select>
+    </label>
+    <label id="onlineLangWrap">Language of your words
+      <select id="onlineLang"></select>
+    </label>
+    <label style="flex-direction:row;align-items:center;gap:8px"><input type="checkbox" id="autoTr"> Translate new words to Persian automatically</label>
+    <label>Speed
+      <input type="range" id="rate" min="0.5" max="1.5" step="0.1" value="1">
+    </label>
+    <div class="row">
+      <button class="btn" id="voiceTest">Test voice</button>
+      <button class="btn primary" id="voiceClose">Done</button>
+    </div>
+  </div>
+</dialog>
+
+<!-- Confirm dialog -->
+<dialog id="confirmDlg">
+  <div class="dlg">
+    <p id="confirmMsg" style="margin:0"></p>
+    <div class="row">
+      <button class="btn" id="confirmNo">Cancel</button>
+      <button class="btn danger" id="confirmYes">Confirm</button>
+    </div>
+  </div>
+</dialog>
+
+<dialog id="aboutDlg">
+  <div class="dlg">
+    <h2>Wordbox</h2>
+    <p style="margin:0">A picture dictionary with categories, flashcards, spoken words and Persian translations.</p>
+    <p style="margin:0"><strong>by Ali Azadi</strong><br><span style="color:var(--muted);font-size:14px">Version 1.1</span></p>
+    <p style="margin:0;color:var(--muted);font-size:14px">Your words and pictures are stored on this device. Translation and online speech send the word to an online service, so they need internet.</p>
+    <div class="row"><button class="btn primary" id="aboutClose">Close</button></div>
+  </div>
+</dialog>
+
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>
+/* ---------- helpers ---------- */
+const $ = s => document.querySelector(s);
+const el = (tag, props = {}, ...kids) => {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(props)) {
+    if (k === 'class') e.className = v;
+    else if (k.startsWith('on')) e.addEventListener(k.slice(2), v);
+    else e.setAttribute(k, v);
+  }
+  kids.flat().filter(c => c != null && c !== false).forEach(c => e.append(c));
+  return e;
+};
+const SPEAKER = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3A4.5 4.5 0 0 0 14 8v8a4.5 4.5 0 0 0 2.5-4zM14 3.2v2.1a7 7 0 0 1 0 13.4v2.1a9 9 0 0 0 0-17.6z"/></svg>';
+const svgBtn = (label, cls, onclick) => {
+  const b = el('button', { class: cls, 'aria-label': label, title: label, onclick });
+  b.innerHTML = SPEAKER;
+  return b;
+};
+let toastTimer;
+function toast(msg) {
+  const t = $('#toast'); t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
+}
+function ask(msg, okLabel = 'Delete') {
+  return new Promise(res => {
+    $('#confirmMsg').textContent = msg;
+    $('#confirmYes').textContent = okLabel;
+    const dlg = $('#confirmDlg');
+    const done = v => { dlg.close(); $('#confirmYes').onclick = $('#confirmNo').onclick = null; res(v); };
+    $('#confirmYes').onclick = () => done(true);
+    $('#confirmNo').onclick = () => done(false);
+    dlg.showModal();
+  });
+}
+
+/* ---------- database (IndexedDB, with in-memory fallback) ---------- */
+const DB = {
+  db: null,
+  mem: { words: [], cats: [], meta: [] },
+  seq: { words: 1, cats: 1 },
+  keyPath: { words: 'id', cats: 'id', meta: 'k' },
+  async open() {
+    try {
+      this.db = await new Promise((res, rej) => {
+        if (!window.indexedDB) return rej();
+        const r = indexedDB.open('wordbox', 1);
+        r.onupgradeneeded = () => {
+          const d = r.result;
+          d.createObjectStore('words', { keyPath: 'id', autoIncrement: true });
+          d.createObjectStore('cats', { keyPath: 'id', autoIncrement: true });
+          d.createObjectStore('meta', { keyPath: 'k' });
+        };
+        r.onsuccess = () => res(r.result);
+        r.onerror = () => rej(r.error);
+        r.onblocked = () => rej();
+      });
+    } catch (e) { this.db = null; }
+    return !!this.db;
+  },
+  tx(store, mode, fn) {
+    return new Promise((res, rej) => {
+      const t = this.db.transaction(store, mode);
+      const r = fn(t.objectStore(store));
+      t.oncomplete = () => res(r && r.result);
+      t.onerror = () => rej(t.error);
+      t.onabort = () => rej(t.error);
+    });
+  },
+  getAll(store) {
+    if (!this.db) return Promise.resolve(structuredClone(this.mem[store]));
+    return this.tx(store, 'readonly', s => s.getAll());
+  },
+  async put(store, obj) {
+    if (!this.db) {
+      const kp = this.keyPath[store];
+      if (kp === 'id') {
+        if (obj.id == null) obj.id = this.seq[store]++;
+        else this.seq[store] = Math.max(this.seq[store], obj.id + 1);
+      }
+      const copy = structuredClone(obj);
+      const i = this.mem[store].findIndex(o => o[kp] === obj[kp]);
+      if (i >= 0) this.mem[store][i] = copy; else this.mem[store].push(copy);
+      return obj.id;
+    }
+    const key = await this.tx(store, 'readwrite', s => s.put(obj));
+    if (store !== 'meta' && obj.id == null) obj.id = key;
+    return key;
+  },
+  async del(store, key) {
+    if (!this.db) { this.mem[store] = this.mem[store].filter(o => o[this.keyPath[store]] !== key); return; }
+    await this.tx(store, 'readwrite', s => s.delete(key));
+  },
+  async clear(store) {
+    if (!this.db) { this.mem[store] = []; return; }
+    await this.tx(store, 'readwrite', s => s.clear());
+  }
+};
+
+/* ---------- state ---------- */
+let words = [], cats = [];
+let settings = { voiceURI: '', rate: 1, autoSpeak: false, onlineLang: 'en', autoTranslate: true };
+let filterCat = 'all';
+let query = '';
+let editing = null, pendingImage = null;
+
+const catName = id => (cats.find(c => c.id === id) || {}).name || '';
+const matchCat = (w, v) => v === 'all' || (v === 'none' ? w.catId == null : w.catId === Number(v));
+const byWord = (a, b) => a.word.localeCompare(b.word, undefined, { sensitivity: 'base' });
+const saveSettings = () => DB.put('meta', { k: 'settings', ...settings });
+
+/* ---------- text to speech ---------- */
+const hasTTS = 'speechSynthesis' in window && typeof SpeechSynthesisUtterance !== 'undefined';
+const ONLINE_LANGS = [['en','English'],['es','Spanish'],['fr','French'],['de','German'],['it','Italian'],['pt','Portuguese'],
+  ['nl','Dutch'],['ar','Arabic'],['tr','Turkish'],['ru','Russian'],['hi','Hindi'],['zh-CN','Chinese'],['ja','Japanese'],['ko','Korean'],['fa','Persian']];
+let voices = [];
+function loadVoices() {
+  voices = hasTTS ? speechSynthesis.getVoices().sort((a, b) => a.lang.localeCompare(b.lang) || a.name.localeCompare(b.name)) : [];
+  const sel = $('#voiceSel'); const cur = settings.voiceURI;
+  sel.innerHTML = '';
+  sel.append(el('option', { value: '' }, 'Phone default'));
+  voices.forEach(v => sel.append(el('option', { value: v.voiceURI }, `${v.name} (${v.lang})`)));
+  sel.value = cur;
+  const ol = $('#onlineLang');
+  if (!ol.options.length) ONLINE_LANGS.forEach(([c, n]) => ol.append(el('option', { value: c }, n)));
+  ol.value = settings.onlineLang;
+}
+let currentAudio = null;
+function speakOnline(text) {
+  const l = settings.onlineLang, q = encodeURIComponent(text);
+  const urls = [
+    `https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=${l}&q=${q}`,
+    `https://translate.googleapis.com/translate_tts?ie=UTF-8&client=gtx&tl=${l}&q=${q}`
+  ];
+  if (currentAudio) { currentAudio.onerror = null; currentAudio.pause(); }
+  const a = new Audio(); a.referrerPolicy = 'no-referrer'; currentAudio = a;
+  let i = 0;
+  const next = () => {
+    if (i >= urls.length) {
+      toast(navigator.onLine === false ? 'No internet connection.' : "The online voice didn't respond. In the APK builder, make sure the Internet permission is on.");
+      return;
+    }
+    a.src = urls[i++];
+    a.play().catch(err => { if (err && err.name === 'NotAllowedError') toast('Tap the speaker button again to play.'); });
+  };
+  a.onerror = next;
+  next();
+}
+function speak(text) {
+  if (window.WordboxNative) { WordboxNative.speak(text, settings.onlineLang); return; }
+  if (!hasTTS || !voices.length) { speakOnline(text); return; }
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  const v = voices.find(v => v.voiceURI === settings.voiceURI);
+  if (v) { u.voice = v; u.lang = v.lang; }
+  u.rate = settings.rate;
+  speechSynthesis.speak(u);
+}
+if (hasTTS) { speechSynthesis.onvoiceschanged = loadVoices; }
+
+/* ---------- library ---------- */
+function renderCount() {
+  $('#count').textContent = `${words.length} ${words.length === 1 ? 'word' : 'words'} in ${cats.length} ${cats.length === 1 ? 'category' : 'categories'}`;
+}
+function renderChips() {
+  const box = $('#chips'); box.innerHTML = '';
+  const chip = (label, val) => el('button', {
+    class: 'chip', 'aria-pressed': String(filterCat === val),
+    onclick: () => { filterCat = val; renderChips(); renderGrid(); }
+  }, label);
+  box.append(chip(`All (${words.length})`, 'all'));
+  cats.slice().sort((a, b) => a.name.localeCompare(b.name)).forEach(c =>
+    box.append(chip(`${c.name} (${words.filter(w => w.catId === c.id).length})`, String(c.id))));
+  const none = words.filter(w => w.catId == null).length;
+  if (none && cats.length) box.append(chip(`No category (${none})`, 'none'));
+  box.append(el('button', { class: 'chip manage', onclick: openCats }, 'Manage categories'));
+}
+function renderGrid() {
+  const grid = $('#grid'); grid.innerHTML = '';
+  const q = query.trim().toLowerCase();
+  const list = words.filter(w => matchCat(w, filterCat) &&
+    (!q || w.word.toLowerCase().includes(q) || (w.meaning || '').toLowerCase().includes(q) || (w.fa || '').includes(q))).sort(byWord);
+  const empty = $('#empty');
+  if (!list.length) {
+    empty.hidden = false; empty.innerHTML = '';
+    if (!words.length) {
+      empty.append(el('p', {}, 'Your word list is empty. Add a word with a picture to get started.'),
+        el('button', { class: 'btn primary', onclick: () => openEdit() }, 'Add your first word'));
+    } else {
+      empty.append(el('p', {}, 'No words match your search or category.'));
+    }
+    return;
+  }
+  empty.hidden = true;
+  list.forEach(w => {
+    const pic = el('div', { class: 'pic' });
+    if (w.image) pic.append(el('img', { src: w.image, alt: w.word, loading: 'lazy' }));
+    else pic.append('No picture');
+    grid.append(el('article', { class: 'wcard' }, pic,
+      el('div', { class: 'body' },
+        el('div', { class: 'w' }, w.word),
+        w.fa ? el('div', { class: 'fa', dir: 'rtl', lang: 'fa' }, w.fa) : null,
+        w.meaning ? el('div', { class: 'm' }, w.meaning) : null,
+        w.catId != null && catName(w.catId) ? el('span', { class: 'cat' }, catName(w.catId)) : null),
+      el('div', { class: 'acts' },
+        svgBtn(`Say "${w.word}"`, 'icon-btn', () => speak(w.word)),
+        el('span', { class: 'grow' }),
+        el('button', { class: 'btn small', onclick: () => openEdit(w) }, 'Edit'),
+        el('button', { class: 'btn small danger', onclick: () => removeWord(w) }, 'Delete'))));
+  });
+}
+async function removeWord(w) {
+  if (!(await ask(`Delete "${w.word}"?`))) return;
+  await DB.del('words', w.id);
+  words = words.filter(x => x.id !== w.id);
+  refresh(); toast('Deleted');
+}
+
+/* ---------- add / edit ---------- */
+function fillCatSelect(selected) {
+  const sel = $('#fCat'); sel.innerHTML = '';
+  sel.append(el('option', { value: '' }, 'No category'));
+  cats.slice().sort((a, b) => a.name.localeCompare(b.name)).forEach(c => sel.append(el('option', { value: String(c.id) }, c.name)));
+  sel.append(el('option', { value: '__new' }, 'New category...'));
+  sel.value = selected == null ? '' : String(selected);
+  $('#newCatWrap').hidden = true;
+}
+function showPreview() {
+  const inner = $('#dropInner'); inner.innerHTML = '';
+  if (pendingImage) inner.append(el('img', { src: pendingImage, alt: 'Selected picture' }), 'Tap to change the picture');
+  else inner.append('Tap to choose a picture, drop one here, or paste from your clipboard');
+  $('#removePic').hidden = !pendingImage;
+}
+function openEdit(w = null) {
+  editing = w; pendingImage = w ? w.image : null;
+  $('#editTitle').textContent = w ? 'Edit word' : 'Add word';
+  $('#fWord').value = w ? w.word : '';
+  $('#fMeaning').value = w ? (w.meaning || '') : '';
+  $('#fNewCat').value = ''; $('#fFa').value = w ? (w.fa || '') : '';
+  fillCatSelect(w ? w.catId : (/^\d+$/.test(filterCat) ? Number(filterCat) : null));
+  $('#editAnother').hidden = !!w;
+  showPreview();
+  $('#editDlg').showModal();
+  $('#fWord').focus();
+}
+function shrink(file) {
+  return new Promise((res, rej) => {
+    const url = URL.createObjectURL(file), img = new Image();
+    img.onload = () => {
+      const s = Math.min(1, 900 / Math.max(img.width, img.height));
+      const w = Math.round(img.width * s), h = Math.round(img.height * s);
+      const c = document.createElement('canvas'); c.width = w; c.height = h;
+      const x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, w, h); x.drawImage(img, 0, 0, w, h);
+      URL.revokeObjectURL(url); res(c.toDataURL('image/jpeg', 0.85));
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); rej(); };
+    img.src = url;
+  });
+}
+async function takeImage(file) {
+  if (!file || !file.type.startsWith('image/')) { toast('Choose an image file.'); return; }
+  try { pendingImage = await shrink(file); showPreview(); }
+  catch { toast("Couldn't read that image."); }
+}
+async function saveWord(another) {
+  const word = $('#fWord').value.trim();
+  if (!word) { toast('Type a word first.'); $('#fWord').focus(); return; }
+  let catId = null; const v = $('#fCat').value;
+  if (v === '__new') {
+    const name = $('#fNewCat').value.trim();
+    if (name) {
+      let c = cats.find(c => c.name.toLowerCase() === name.toLowerCase());
+      if (!c) { c = { name }; await DB.put('cats', c); cats.push(c); }
+      catId = c.id;
+    }
+  } else if (v) catId = Number(v);
+  const rec = editing ? { ...editing } : { created: Date.now() };
+  Object.assign(rec, { word, meaning: $('#fMeaning').value.trim(), catId, image: pendingImage, fa: $('#fFa').value.trim() });
+  await DB.put('words', rec);
+  if (editing) words = words.map(w => w.id === rec.id ? rec : w); else words.push(rec);
+  refresh();
+  if (another && !editing) {
+    toast(`Saved "${word}"`);
+    pendingImage = null; showPreview();
+    $('#fWord').value = ''; $('#fMeaning').value = ''; $('#fFa').value = '';
+    fillCatSelect(catId); $('#fWord').focus();
+  } else { $('#editDlg').close(); toast(editing ? 'Changes saved' : `Saved "${word}"`); }
+}
+
+/* ---------- categories ---------- */
+function openCats() { renderCatList(); $('#catDlg').showModal(); }
+function renderCatList() {
+  const list = $('#catList'); list.innerHTML = '';
+  if (!cats.length) list.append(el('p', { style: 'color:var(--muted);margin:0' }, 'No categories yet. Add one above.'));
+  cats.slice().sort((a, b) => a.name.localeCompare(b.name)).forEach(c => {
+    const inp = el('input', { type: 'text', value: c.name, maxlength: '60', 'aria-label': `Rename ${c.name}` });
+    inp.addEventListener('change', async () => {
+      const name = inp.value.trim();
+      if (!name) { inp.value = c.name; return; }
+      c.name = name; await DB.put('cats', c); refresh(); toast('Renamed');
+    });
+    list.append(el('div', { class: 'catrow' }, inp,
+      el('span', {}, String(words.filter(w => w.catId === c.id).length)),
+      el('button', { class: 'btn small danger', onclick: async () => {
+        if (!(await ask(`Delete the category "${c.name}"? Its words stay in your list with no category.`))) return;
+        for (const w of words.filter(w => w.catId === c.id)) { w.catId = null; await DB.put('words', w); }
+        await DB.del('cats', c.id); cats = cats.filter(x => x.id !== c.id);
+        if (filterCat === String(c.id)) filterCat = 'all';
+        refresh(); renderCatList();
+      } }, 'Delete')));
+  });
+}
+async function addCat() {
+  const inp = $('#newCatInput'), name = inp.value.trim();
+  if (!name) return;
+  if (cats.some(c => c.name.toLowerCase() === name.toLowerCase())) { toast('That category already exists.'); return; }
+  const c = { name }; await DB.put('cats', c); cats.push(c);
+  inp.value = ''; refresh(); renderCatList();
+}
+
+/* ---------- flashcards ---------- */
+let deck = [], idx = 0, flipped = false;
+function fillFcCat() {
+  const sel = $('#fcCat'), cur = sel.value || 'all'; sel.innerHTML = '';
+  sel.append(el('option', { value: 'all' }, `All words (${words.length})`));
+  cats.slice().sort((a, b) => a.name.localeCompare(b.name)).forEach(c =>
+    sel.append(el('option', { value: String(c.id) }, `${c.name} (${words.filter(w => w.catId === c.id).length})`)));
+  if (words.some(w => w.catId == null) && cats.length) sel.append(el('option', { value: 'none' }, 'No category'));
+  sel.value = [...sel.options].some(o => o.value === cur) ? cur : 'all';
+}
+function buildDeck(keepShuffle) {
+  const v = $('#fcCat').value;
+  deck = words.filter(w => matchCat(w, v)).sort(byWord);
+  if (keepShuffle) for (let i = deck.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [deck[i], deck[j]] = [deck[j], deck[i]]; }
+  idx = 0; showCard();
+}
+function face(w, kind) {
+  const nodes = [];
+  if (kind === 'picture') {
+    if (w.image) nodes.push(el('img', { src: w.image, alt: 'Picture to identify' }));
+    else nodes.push(el('div', { class: 'nopic' }, 'No picture saved for this word'));
+    if (!w.image && w.meaning) nodes.push(el('div', { class: 'sub' }, w.meaning));
+  } else {
+    nodes.push(el('div', { class: 'big' }, w.word));
+    nodes.push(svgBtn(`Say "${w.word}"`, 'icon-btn', e => { e.stopPropagation(); speak(w.word); }));
+    if (w.fa) nodes.push(el('div', { class: 'fa', dir: 'rtl', lang: 'fa', style: 'font-size:30px' }, w.fa));
+    if (w.meaning) nodes.push(el('div', { class: 'sub' }, w.meaning));
+  }
+  return nodes;
+}
+function showCard() {
+  const empty = !deck.length;
+  $('#fcEmpty').hidden = !empty; $('#fcArea').hidden = empty;
+  if (empty) return;
+  const w = deck[idx], mode = $('#fcMode').value, card = $('#card');
+  card.classList.add('noanim'); card.classList.remove('flipped'); flipped = false;
+  const f = $('#faceFront'), b = $('#faceBack');
+  f.replaceChildren(...face(w, mode));
+  b.replaceChildren(...(mode === 'picture' ? face(w, 'word') : [
+    ...face(w, 'picture'),
+    el('div', { class: 'big', style: 'font-size:28px' }, w.word),
+    ...(w.fa ? [el('div', { class: 'fa', dir: 'rtl', lang: 'fa', style: 'font-size:24px' }, w.fa)] : []),
+    ...(w.meaning ? [el('div', { class: 'sub' }, w.meaning)] : [])]));
+  void card.offsetWidth; card.classList.remove('noanim');
+  $('#fcCount').textContent = `${idx + 1} of ${deck.length}`;
+  if (mode === 'word' && settings.autoSpeak) speak(w.word);
+}
+function flip() {
+  if (!deck.length) return;
+  flipped = !flipped; $('#card').classList.toggle('flipped', flipped);
+  if (flipped && $('#fcMode').value === 'picture' && settings.autoSpeak) speak(deck[idx].word);
+}
+function step(d) { if (!deck.length) return; idx = (idx + d + deck.length) % deck.length; showCard(); }
+
+/* ---------- views, refresh ---------- */
+function setView(v) {
+  $('#view-words').hidden = v !== 'words'; $('#view-cards').hidden = v !== 'cards';
+  $('#tab-words').setAttribute('aria-selected', v === 'words');
+  $('#tab-cards').setAttribute('aria-selected', v === 'cards');
+  if (v === 'cards') { fillFcCat(); buildDeck(false); }
+}
+function refresh() {
+  renderCount(); renderChips(); renderGrid();
+  if (!$('#view-cards').hidden) { const keep = deck[idx] && deck[idx].id; fillFcCat(); buildDeck(false); const i = deck.findIndex(w => w.id === keep); if (i >= 0) { idx = i; showCard(); } }
+}
+
+/* ---------- translation (Persian) ---------- */
+async function translateFa(text) {
+  const src = settings.onlineLang;
+  if (src === 'fa') return '';
+  const r = await fetch('https://api.mymemory.translated.net/get?q=' + encodeURIComponent(text) + '&langpair=' + encodeURIComponent(src) + '|fa');
+  const d = await r.json();
+  const t = d && d.responseData && d.responseData.translatedText;
+  if (!t || /MYMEMORY WARNING/i.test(t) || Number(d.responseStatus) !== 200) throw new Error('translate');
+  return t;
+}
+async function translateField(quiet) {
+  const w = $('#fWord').value.trim(); if (!w) return;
+  $('#fTr').disabled = true;
+  try { const t = await translateFa(w); if (t && !$('#fFa').value.trim()) $('#fFa').value = t; else if (t && !quiet) $('#fFa').value = t; }
+  catch (e) { if (!quiet) toast("Couldn't translate. Check your internet, or type the Persian yourself."); }
+  $('#fTr').disabled = false;
+}
+async function translateAll() {
+  const todo = words.filter(w => !w.fa);
+  if (!todo.length) { toast('Every word already has a Persian translation.'); return; }
+  toast(`Translating ${todo.length} words...`); let n = 0;
+  for (const w of todo) {
+    try { const t = await translateFa(w.word); if (t) { w.fa = t; await DB.put('words', w); n++; } }
+    catch (e) { toast('Stopped: no internet or the daily translation limit was reached.'); break; }
+    await new Promise(r => setTimeout(r, 400));
+  }
+  refresh(); if (n) toast(`Added ${n} translations`);
+}
+
+/* ---------- backup, merge, built-in data ---------- */
+async function mergeData(data) {
+  const idMap = {}; let added = 0;
+  for (const c of data.cats || []) {
+    let x = cats.find(k => k.name.toLowerCase() === c.name.toLowerCase());
+    if (!x) { x = { name: c.name }; await DB.put('cats', x); cats.push(x); }
+    idMap[c.id] = x.id;
+  }
+  for (const w of data.words || []) {
+    if (!w || !w.word) continue;
+    const ex = words.find(k => k.word.toLowerCase() === w.word.toLowerCase());
+    if (ex) { if (!ex.fa && w.fa) { ex.fa = w.fa; await DB.put('words', ex); } continue; }
+    const rec = { word: w.word, meaning: w.meaning || '', fa: w.fa || '', image: w.image || null, catId: idMap[w.catId] ?? null, created: w.created || Date.now() };
+    await DB.put('words', rec); words.push(rec); added++;
+  }
+  return added;
+}
+async function applySeed() {
+  const seed = window.WORDBOX_SEED;
+  if (!seed || !Array.isArray(seed.words)) return;
+  const id = seed.exportedAt || 1;
+  const m = (await DB.getAll('meta')).find(x => x.k === 'seed');
+  if (m && m.id === id) return;
+  const n = await mergeData(seed); await DB.put('meta', { k: 'seed', id });
+  if (n) toast(`Loaded ${n} words`);
+}
+const currentData = () => ({ app: 'wordbox', version: 2, exportedAt: Date.now(), cats, words });
+async function saveFile(name, text, type) {
+  if (window.WordboxNative) { WordboxNative.saveFile(name, text); return; }
+  for (const t of [type, 'text/plain']) {
+    const file = new File([text], name, { type: t });
+    try { if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: name }); return; } }
+    catch (e) { if (e && e.name === 'AbortError') return; }
+  }
+  const a = el('a', { href: URL.createObjectURL(new File([text], name, { type })), download: name });
+  document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  toast('Backup file saved to your Downloads');
+}
+const stamp = () => new Date().toISOString().slice(0, 10);
+const exportData = () => saveFile(`wordbox-backup-${stamp()}.wordbox`, JSON.stringify(currentData()), 'application/octet-stream');
+const exportSeed = () => saveFile('wordbox-data.js', 'window.WORDBOX_SEED = ' + JSON.stringify(currentData()) + ';', 'text/javascript');
+async function importData(file) {
+  try {
+    const data = JSON.parse(await file.text());
+    if (!Array.isArray(data.words)) throw 0;
+    const n = await mergeData(data); filterCat = 'all'; refresh();
+    toast(n ? `Backup loaded: ${n} new words added` : 'Backup loaded. You already had all of those words.');
+  } catch (e) { toast("That file isn't a Wordbox backup."); }
+}
+
+/* ---------- Android niceties ---------- */
+const _showModal = HTMLDialogElement.prototype.showModal;
+HTMLDialogElement.prototype.showModal = function () {
+  _showModal.call(this);
+  try { history.pushState({ d: 1 }, ''); this._pushed = true; } catch (e) { this._pushed = false; }
+};
+let ignorePop = false, closingByPop = false;
+document.addEventListener('close', e => {
+  if (!closingByPop && e.target._pushed) { ignorePop = true; history.back(); }
+  e.target._pushed = false; closingByPop = false;
+}, true);
+window.addEventListener('popstate', () => {
+  if (ignorePop) { ignorePop = false; return; }
+  const d = document.querySelector('dialog[open]');
+  if (d) { d._pushed = false; closingByPop = true; d.close(); }
+});
+document.addEventListener('visibilitychange', () => { if (document.hidden && hasTTS) speechSynthesis.cancel(); });
+
+/* ---------- wire up ---------- */
+$('#tab-words').onclick = () => setView('words');
+$('#tab-cards').onclick = () => setView('cards');
+$('#addBtn').onclick = () => openEdit();
+$('#search').oninput = e => { query = e.target.value; renderGrid(); };
+$('#fCat').onchange = e => { $('#newCatWrap').hidden = e.target.value !== '__new'; if (e.target.value === '__new') $('#fNewCat').focus(); };
+$('#editCancel').onclick = () => $('#editDlg').close();
+$('#editSave').onclick = () => saveWord(false);
+$('#editAnother').onclick = () => saveWord(true);
+$('#fWord').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); saveWord(false); } });
+const drop = $('#drop');
+drop.onclick = () => $('#fFile').click();
+drop.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); $('#fFile').click(); } };
+$('#fFile').onchange = e => { takeImage(e.target.files[0]); e.target.value = ''; };
+['dragenter', 'dragover'].forEach(t => drop.addEventListener(t, e => { e.preventDefault(); drop.classList.add('over'); }));
+['dragleave', 'drop'].forEach(t => drop.addEventListener(t, e => { e.preventDefault(); drop.classList.remove('over'); }));
+drop.addEventListener('drop', e => takeImage(e.dataTransfer.files[0]));
+document.addEventListener('paste', e => {
+  if (!$('#editDlg').open) return;
+  const item = [...(e.clipboardData?.items || [])].find(i => i.type.startsWith('image/'));
+  if (item) takeImage(item.getAsFile());
+});
+$('#camBtn').onclick = () => $('#fCam').click();
+$('#fCam').onchange = e => { takeImage(e.target.files[0]); e.target.value = ''; };
+$('#fTr').onclick = () => translateField(false);
+$('#fWord').addEventListener('change', () => { if (settings.autoTranslate && !$('#fFa').value.trim()) translateField(true); });
+$('#aboutBtn').onclick = () => $('#aboutDlg').showModal();
+$('#aboutClose').onclick = () => $('#aboutDlg').close();
+$('#seedBtn').onclick = exportSeed;
+$('#trAllBtn').onclick = translateAll;
+$('#autoTr').onchange = e => { settings.autoTranslate = e.target.checked; saveSettings(); };
+$('#removePic').onclick = () => { pendingImage = null; showPreview(); };
+$('#newCatAdd').onclick = addCat;
+$('#newCatInput').addEventListener('keydown', e => { if (e.key === 'Enter') addCat(); });
+$('#catClose').onclick = () => $('#catDlg').close();
+
+$('#voiceBtn').onclick = () => {
+  loadVoices(); $('#ttsNote').hidden = !!voices.length || !!window.WordboxNative;
+  $('#voiceSel').value = settings.voiceURI; $('#rate').value = settings.rate;
+  $('#voiceDlg').showModal();
+};
+$('#voiceSel').onchange = e => { settings.voiceURI = e.target.value; saveSettings(); };
+$('#onlineLang').onchange = e => { settings.onlineLang = e.target.value; saveSettings(); };
+$('#rate').oninput = e => { settings.rate = Number(e.target.value); saveSettings(); };
+$('#voiceTest').onclick = () => speak('Hello, this is how I sound.');
+$('#voiceClose').onclick = () => $('#voiceDlg').close();
+
+$('#exportBtn').onclick = exportData;
+$('#importBtn').onclick = () => $('#importFile').click();
+$('#importFile').onchange = e => { if (e.target.files[0]) importData(e.target.files[0]); e.target.value = ''; };
+
+$('#fcCat').onchange = () => buildDeck(false);
+$('#fcMode').onchange = showCard;
+$('#fcShuffle').onclick = () => buildDeck(true);
+$('#autoSpeak').onchange = e => { settings.autoSpeak = e.target.checked; saveSettings(); };
+$('#card').onclick = flip;
+$('#card').onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); flip(); } };
+$('#fcPrev').onclick = () => step(-1);
+$('#fcNext').onclick = () => step(1);
+document.addEventListener('keydown', e => {
+  if ($('#view-cards').hidden || document.querySelector('dialog[open]')) return;
+  if (['INPUT', 'SELECT', 'TEXTAREA'].includes(document.activeElement.tagName)) return;
+  if (e.key === 'ArrowRight') step(1);
+  else if (e.key === 'ArrowLeft') step(-1);
+});
+
+/* ---------- offline support ---------- */
+if ('serviceWorker' in navigator && !window.WordboxNative && /^https?:$/.test(location.protocol)) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+
+/* ---------- start ---------- */
+(async function init() {
+  const ok = await DB.open();
+  $('#memBanner').hidden = ok;
+  words = await DB.getAll('words'); cats = await DB.getAll('cats');
+  const meta = (await DB.getAll('meta')).find(m => m.k === 'settings');
+  if (meta) settings = { ...settings, ...meta };
+  $('#autoSpeak').checked = settings.autoSpeak;
+  $('#autoTr').checked = settings.autoTranslate;
+  await applySeed(); loadVoices(); refresh();
+  try { navigator.storage && navigator.storage.persist && navigator.storage.persist(); } catch (e) {}
+})();
+</script>
+</body>
+</html>

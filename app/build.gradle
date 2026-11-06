@@ -1,0 +1,12 @@
+plugins { id 'com.android.application' }
+android {
+  namespace 'com.aliazadi.wordbox'
+  compileSdk 34
+  defaultConfig { applicationId 'com.aliazadi.wordbox'; minSdk 24; targetSdk 34; versionCode 1; versionName '1.1' }
+  signingConfigs { debug { storeFile file('wordbox.keystore'); storePassword 'wordbox'; keyAlias 'wordbox'; keyPassword 'wordbox' } }
+  compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
+}
+dependencies {
+  implementation 'androidx.webkit:webkit:1.11.0'
+  implementation 'androidx.core:core:1.13.1'
+}
